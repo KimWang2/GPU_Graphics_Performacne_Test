@@ -34,7 +34,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\VectorLengths.hlsl">
+    <FxCompile Include="Shaders\VectorLengths.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>

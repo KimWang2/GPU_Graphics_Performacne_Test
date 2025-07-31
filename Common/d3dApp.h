@@ -80,6 +80,11 @@ public:
         SubmitAndFlushCommandQueue();
     }
 
+    UINT GetRtvDescriptorSize() { return mRtvDescriptorSize; }
+
+    UINT GetDsvDescriptorSize() { return mDsvDescriptorSize; }
+
+    UINT GetCbvSrvUavDescriptorSize() { return mCbvSrvUavDescriptorSize; }
 
     double GetDuration()
     {
@@ -388,10 +393,6 @@ private:
 
         mScissorRect = { 0, 0, mClientWidth, mClientHeight };
     }
-
-
-
-
 
     HINSTANCE mhAppInst     = nullptr;
     HWND      mhMainWnd     = nullptr;

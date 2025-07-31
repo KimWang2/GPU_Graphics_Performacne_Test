@@ -1,5 +1,5 @@
 #include "d3dApp.h"
-
+#include "Test.h"
 int WINAPI WinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -7,5 +7,8 @@ int WINAPI WinMain(
     _In_ int nCmdShow
 )
 {
+    Test test(hInstance);
+    test.Dispatch();
+    auto duration = test.GetDuration();
     return 0;
 }

@@ -10,8 +10,8 @@
     HRESULT hr__ = (x);                                               \
     if (FAILED(hr__)) {                                               \
         _com_error err(hr__);                                         \
-        OutputDebugString(err.ErrorMessage());                         \
-        throw std::exception(err.ErrorMessage());                      \
+        OutputDebugString(err.ErrorMessage());                        \
+        throw std::exception(err.ErrorMessage());                     \
     }                                                                 \
 }
 
@@ -71,12 +71,14 @@ namespace D3DUtil
         Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer) 
     {
 		ComPtr<ID3D12Resource> defaultBuffer;
-
+		D3D12_HEAP_PROPERTIES defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_HEAP_PROPERTIES uploadHeap  = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		D3D12_RESOURCE_DESC   bufferSize  = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
 		// Create the actual default buffer resource.
 		device->CreateCommittedResource(
-				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				&defaultHeap,
 				D3D12_HEAP_FLAG_NONE,
-				&CD3DX12_RESOURCE_DESC::Buffer(byteSize),
+				&bufferSize,
 				D3D12_RESOURCE_STATE_COMMON,
 				nullptr,
 				IID_PPV_ARGS(defaultBuffer.GetAddressOf()));
@@ -84,9 +86,9 @@ namespace D3DUtil
 		// In order to copy CPU memory data into our default buffer, we need to create
 		// an intermediate upload heap. 
 		device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			&uploadHeap,
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(byteSize),
+			&bufferSize,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(uploadBuffer.GetAddressOf()));

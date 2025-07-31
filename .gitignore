@@ -39,3 +39,7 @@
 
 # debug information files
 *.dwo
+
+/.vs
+Test/X64
+/Test/X64
