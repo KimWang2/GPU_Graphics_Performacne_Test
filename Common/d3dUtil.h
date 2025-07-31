@@ -8,7 +8,7 @@ namespace D3DUtil
 {
     using Microsoft::WRL::ComPtr;  
 
-    ComPtr<ID3DBlob> CompileShader(
+    inline ComPtr<ID3DBlob> CompileShader(
         const std::wstring& filename,
         const D3D_SHADER_MACRO* defines,
         const std::string& entrypoint,

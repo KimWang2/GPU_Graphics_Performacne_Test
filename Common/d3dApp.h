@@ -9,6 +9,7 @@
 #include "d3dUtil.h"
 #include <string>
 #include <cassert>
+#include <DirectXMath.h>
 #if defined(DEBUG) || defined(_DEBUG)
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
@@ -144,6 +145,8 @@ private:
         BuildDescriptorHeaps();
         BuildShadersAndInputLayout();
         BuildPSOs();
+    
+        FlushCommandQueue();
 
         return true;
     }
@@ -351,7 +354,7 @@ private:
         dsvDesc.Texture2D.MipSlice = 0;
         md3dDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), &dsvDesc, DepthStencilView());
 
-
+        
         mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr);
         // Transition the resource from its initial state to be used as a depth buffer.
         
