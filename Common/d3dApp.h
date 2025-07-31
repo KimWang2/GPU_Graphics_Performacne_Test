@@ -77,7 +77,7 @@ public:
         mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
         // Wait until resize is complete.
-        FlushCommandQueue();
+        SubmitAndFlushCommandQueue();
     }
 
 
@@ -106,6 +106,11 @@ public:
         return mDsvHeap->GetCPUDescriptorHandleForHeapStart();
     }
     
+    ID3D12Device* Device() const
+    {
+        return md3dDevice.Get();
+    }
+
     ID3D12GraphicsCommandList* GraphicsCommandList() const
     {
         return mCommandList.Get();
@@ -141,12 +146,14 @@ private:
             CreateSwapChainDepthBufferAndView();
         }
 
+		mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr);
+
         BuildResourcesAndHeaps();
         BuildDescriptorHeaps();
         BuildShadersAndInputLayout();
         BuildPSOs();
     
-        FlushCommandQueue();
+        SubmitAndFlushCommandQueue();
 
         return true;
     }
@@ -181,9 +188,18 @@ private:
             nullptr,
             IID_PPV_ARGS(&mTimestampQueryReadbackBuffer)));
     }
-
-    void FlushCommandQueue()
+    
+    void SubmitCommand()
     {
+        AssertIfFailed(mCommandList->Close());
+        ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+        mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists); 
+    }
+
+    void SubmitAndFlushCommandQueue()
+    {
+        SubmitCommand();
+
         // Advance the fence value to mark commands up to this fence point.
         mCurrentFence++;
 
@@ -360,13 +376,7 @@ private:
         
         mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
         
-        // Execute the resize commands.
-        AssertIfFailed(mCommandList->Close());
-        ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
-        mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
-        // Wait until resize is complete.
-        FlushCommandQueue();
+        SubmitAndFlushCommandQueue();
 
         // Update the viewport transform to cover the client area.
         mScreenViewport.TopLeftX = 0;
@@ -377,8 +387,10 @@ private:
         mScreenViewport.MaxDepth = 1.0f;
 
         mScissorRect = { 0, 0, mClientWidth, mClientHeight };
-
     }
+
+
+
 
 
     HINSTANCE mhAppInst     = nullptr;

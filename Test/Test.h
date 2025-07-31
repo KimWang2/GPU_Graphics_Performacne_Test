@@ -32,6 +32,7 @@ public:
 			vec.y = magnitude * sinf(phi) * sinf(theta);
 			vec.z = magnitude * cosf(phi);
 		}
+
     }
 
     void BuildDescriptorHeaps() {
@@ -51,5 +52,6 @@ public:
     }
 
     std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
+    Microsoft::WRL::ComPtr<ID3D12Resource> mUploadBuffer;
 };
 
