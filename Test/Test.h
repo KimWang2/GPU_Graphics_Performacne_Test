@@ -108,6 +108,8 @@ public:
     void DoAction() override {
 	   // Dispatch compute shader
 		auto commandList = GraphicsCommandList();
+		commandList->SetComputeRootSignature(mRootSignature.Get());
+		commandList->SetPipelineState(mPSO.Get());
 		commandList->SetComputeRootShaderResourceView(0, mDefaultBuffer->GetGPUVirtualAddress());
 		commandList->SetComputeRootUnorderedAccessView(1, mOutputBuffer->GetGPUVirtualAddress());
 		commandList->Dispatch(1, 1, 1);

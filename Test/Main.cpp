@@ -8,6 +8,7 @@ int WINAPI WinMain(
 )
 {
     Test test(hInstance);
+    test.Initialize();
     test.Dispatch();
     auto duration = test.GetDuration();
     return 0;

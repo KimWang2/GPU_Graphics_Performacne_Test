@@ -6,9 +6,9 @@ struct Vector3D
 };
 
 StructuredBuffer<Vector3D> InputVectors : register(t0);
-RWBuffer<float> OutputLengths           : register(u0);
+RWStructuredBuffer<float> OutputLengths   : register(u0);
 
-[numthread(64,1,1)]
+[numthreads(64 ,1 ,1)]
 void CSMain(uint3 tid : SV_DispatchThreadID)
 {
     if(tid.x < 64)

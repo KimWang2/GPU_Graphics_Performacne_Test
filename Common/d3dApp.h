@@ -26,17 +26,24 @@ class D3DApp
 {
 public:
     
-    D3DApp(HINSTANCE hInstance) : mhAppInst(hInstance) 
-    {
-        assert(InitGraphics(false));
+    D3DApp(HINSTANCE hInstance) : mhAppInst(hInstance) { }
+
+    D3DApp(HINSTANCE hInstance, std::wstring caption, int windowWidth, int windowHeight) : 
+        mhAppInst(hInstance), mWindowCaption(caption), mClientHeight(windowHeight), mClientWidth(windowWidth), mShowWindow(true) { }
+    
+    void Initialize() {
+        if (mShowWindow)
+        {
+			assert(InitMainWindow());
+			assert(InitGraphics(true));
+        }
+        else 
+        {
+			assert(InitGraphics(false));
+        }
     }
 
-    D3DApp(HINSTANCE hInstance, std::wstring caption, int windowWidth, int windowHeight) : mhAppInst(hInstance), mWindowCaption(caption), mClientHeight(windowHeight), mClientWidth(windowWidth)
-    {
-        assert(InitMainWindow());
-        assert(InitGraphics(true));
-    }
-    
+
     virtual void BuildResourcesAndHeaps() = 0;
     virtual void BuildDescriptorHeaps() = 0;
     virtual void BuildShadersAndInputLayout() = 0;
@@ -62,7 +69,7 @@ public:
                                        2,              // Query count (start + end)
                                        mTimestampQueryReadbackBuffer.Get(),
                                        0);             // Offset into buffer   
-
+        /*
         D3D12_RESOURCE_BARRIER barrier = {};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = mTimestampQueryReadbackBuffer.Get();
@@ -70,11 +77,7 @@ public:
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
         mCommandList->ResourceBarrier(1, &barrier);
-
-
-        AssertIfFailed(mCommandList->Close());
-        ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
-        mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+        */
 
         // Wait until resize is complete.
         SubmitAndFlushCommandQueue();
@@ -151,13 +154,13 @@ private:
             CreateSwapChainDepthBufferAndView();
         }
 
-		mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr);
+		AssertIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
         BuildResourcesAndHeaps();
         BuildDescriptorHeaps();
         BuildShadersAndInputLayout();
         BuildPSOs();
-    
+        CreateQueryHeapAndResorce();
         SubmitAndFlushCommandQueue();
 
         return true;
@@ -241,7 +244,7 @@ private:
         wc.lpszMenuName  = 0;
         wc.lpszClassName = L"MainWnd";
 
-        if( !RegisterClass(&wc) )
+        if(!RegisterClass(&wc) )
         {
             MessageBox(0, L"RegisterClass Failed.", 0, 0);
             return false;
