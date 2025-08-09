@@ -43,18 +43,32 @@ public:
         }
     }
 
-
-    virtual void BuildResourcesAndHeaps() = 0;
-    virtual void BuildDescriptorHeaps() = 0;
-    virtual void BuildShadersAndInputLayout() = 0;
-    virtual void BuildPSOs() = 0;
-    virtual void DoAction()  = 0;
+    virtual void        BuildResourcesAndHeaps()     = 0;
+    virtual void        BuildShadersAndInputLayout() = 0;
+    virtual void        DoAction()                   = 0;
+    virtual ID3D10Blob* GetComputerShader()          = 0;
+    virtual void        SetCBV(CD3DX12_CPU_DESCRIPTOR_HANDLE cbvHeap) = 0;
+    virtual void        SetSRV(CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeap) = 0;
+    virtual void        SetUAV(CD3DX12_CPU_DESCRIPTOR_HANDLE uavHeap) = 0;
 
     void Draw() {}
 
     void Dispatch(){
 
         mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr);
+
+		mCommandList->SetComputeRootSignature(mRootSignature.Get());
+
+		mCommandList->SetPipelineState(mPSO.Get());
+
+        ID3D12DescriptorHeap* ppHeaps[] = { mDescriptorHeap.Get() };
+
+		mCommandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+        mCommandList->SetComputeRootDescriptorTable(0, GetCBVGpuHandle());
+        mCommandList->SetComputeRootDescriptorTable(1, GetSRVGpuHandle());
+        mCommandList->SetComputeRootDescriptorTable(2, GetUAVGpuHandle());
+
         // Transition the resource from its initial state to be used as a depth buffer.
         mCommandList->EndQuery(mTimestampQueryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 
@@ -68,16 +82,7 @@ public:
                                        0,              // Start index
                                        2,              // Query count (start + end)
                                        mTimestampQueryReadbackBuffer.Get(),
-                                       0);             // Offset into buffer   
-        /*
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = mTimestampQueryReadbackBuffer.Get();
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        mCommandList->ResourceBarrier(1, &barrier);
-        */
+                                       0);             // Offset into buffer
 
         // Wait until resize is complete.
         SubmitAndFlushCommandQueue();
@@ -88,6 +93,30 @@ public:
     UINT GetDsvDescriptorSize() { return mDsvDescriptorSize; }
 
     UINT GetCbvSrvUavDescriptorSize() { return mCbvSrvUavDescriptorSize; }
+    
+    CD3DX12_GPU_DESCRIPTOR_HANDLE GetCBVGpuHandle() { 
+        return CD3DX12_GPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    }
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE GetSRVGpuHandle() { 
+        return CD3DX12_GPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetGPUDescriptorHandleForHeapStart()).Offset(8, GetCbvSrvUavDescriptorSize());
+    }
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE GetUAVGpuHandle() { 
+        return CD3DX12_GPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetGPUDescriptorHandleForHeapStart()).Offset(16, GetCbvSrvUavDescriptorSize());
+    }
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBVCpuHandle() { 
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    }
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRVCpuHandle() { 
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetCPUDescriptorHandleForHeapStart()).Offset(8, GetCbvSrvUavDescriptorSize());
+    }
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE GetUAVCpuHandle() { 
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetCPUDescriptorHandleForHeapStart()).Offset(16, GetCbvSrvUavDescriptorSize());
+    }
 
     double GetDuration()
     {
@@ -123,8 +152,64 @@ public:
     {
         return mCommandList.Get();
     }
-
+    
 private:
+
+    void BuildPSOs() {
+		CD3DX12_ROOT_PARAMETER slotRootParameter[3];
+		
+		CD3DX12_DESCRIPTOR_RANGE cbvTable;
+		cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 8, 0);
+
+		CD3DX12_DESCRIPTOR_RANGE srvTable;
+		srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 0);
+
+		CD3DX12_DESCRIPTOR_RANGE uavTable;
+		uavTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 8, 0);
+
+
+		slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable);
+		slotRootParameter[1].InitAsDescriptorTable(1, &srvTable);
+		slotRootParameter[2].InitAsDescriptorTable(1, &uavTable);
+
+		// A root signature is an array of root parameters.
+		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+		// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
+		ComPtr<ID3DBlob> serializedRootSig = nullptr;
+		ComPtr<ID3DBlob> errorBlob = nullptr;
+		HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf()); 
+		if(errorBlob != nullptr)
+		{
+			::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+		}
+		AssertIfFailed(hr);
+
+		AssertIfFailed(Device()->CreateRootSignature(
+			0,
+			serializedRootSig->GetBufferPointer(),
+			serializedRootSig->GetBufferSize(),
+			IID_PPV_ARGS(mRootSignature.GetAddressOf())));
+
+		D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
+		computePsoDesc.pRootSignature = mRootSignature.Get();
+		computePsoDesc.CS =
+		{
+			reinterpret_cast<BYTE*>(GetComputerShader()->GetBufferPointer()),
+			GetComputerShader()->GetBufferSize()
+		};
+		computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+		AssertIfFailed(Device()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&mPSO)));
+    }
+
+	void BuildDescriptorHeaps() {
+		// Create a descriptor heap that can hold both SRV and UAV descriptors
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+		heapDesc.NumDescriptors = (8 + 8 + 8); //8 CBV + 8 SRV + 8 UAV 
+		heapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		heapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		AssertIfFailed(Device()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDescriptorHeap)));
+    }
 
     bool InitGraphics(bool hasWindow)
     {
@@ -160,9 +245,14 @@ private:
         BuildDescriptorHeaps();
         BuildShadersAndInputLayout();
         BuildPSOs();
+
+        SetCBV(GetCBVCpuHandle());
+        SetSRV(GetSRVCpuHandle());
+        SetUAV(GetUAVCpuHandle());
+
         CreateQueryHeapAndResorce();
         SubmitAndFlushCommandQueue();
-
+         
         return true;
     }
 
@@ -417,8 +507,8 @@ private:
     DXGI_FORMAT mBackBufferFormat   = DXGI_FORMAT_R8G8B8A8_UNORM;
     DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue;
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue>        mCommandQueue;
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator>    mDirectCmdListAlloc;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;
 
 	static const int SwapChainBufferCount = 2;
@@ -434,5 +524,9 @@ private:
     UINT64 mTimestampQueryBufferSize = 2 * sizeof(UINT64); // For two timestamps
 
     D3D12_VIEWPORT mScreenViewport; 
-    D3D12_RECT mScissorRect;
+    D3D12_RECT     mScissorRect;
+
+	ComPtr<ID3D12RootSignature>  mRootSignature;
+	ComPtr<ID3D12DescriptorHeap> mDescriptorHeap;
+	ComPtr<ID3D12PipelineState>  mPSO;
 };
