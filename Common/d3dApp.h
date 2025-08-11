@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cmath>
 #include <windows.h>
 #include <dxgi1_6.h>
 #include <d3d12.h>
@@ -35,11 +35,11 @@ public:
         if (mShowWindow)
         {
 			assert(InitMainWindow());
-			assert(InitGraphics(true));
+			assert(InitGraphics());
         }
         else 
         {
-			assert(InitGraphics(false));
+			assert(InitGraphics());
         }
     }
 
@@ -138,6 +138,11 @@ public:
         return gpuDuration;
     }
 
+    D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView() const
+    {
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), mCurrBackBuffer, mRtvDescriptorSize);
+    }
+
     D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const
     {
         return mDsvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -211,7 +216,7 @@ private:
 		AssertIfFailed(Device()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDescriptorHeap)));
     }
 
-    bool InitGraphics(bool hasWindow)
+    bool InitGraphics()
     {
 #if defined(DEBUG) || defined(_DEBUG) 
         {
@@ -234,7 +239,8 @@ private:
         
         CreateCommandObjects();
 
-        if (hasWindow)
+
+        if (mShowWindow)
         {
             CreateSwapChainDepthBufferAndView();
         }
@@ -296,8 +302,33 @@ private:
 
     void SubmitAndFlushCommandQueue()
     {
+        if (mShowWindow)
+        {
+            mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
+			CD3DX12_RESOURCE_BARRIER renderTargetBarrier = CD3DX12_RESOURCE_BARRIER::Transition(mSwapChainBuffer[mCurrBackBuffer].Get(),
+																								D3D12_RESOURCE_STATE_PRESENT,          // Before: Presentable
+																								D3D12_RESOURCE_STATE_RENDER_TARGET      // After: Ready for rendering
+																								);
+
+            static float temp = 0;
+            temp += 1;
+			mCommandList->ResourceBarrier(1, &renderTargetBarrier);
+            const float clearColor[] = { sinf(temp), 0.2f, 0.4f, 1.0f};
+			mCommandList->ClearRenderTargetView(RenderTargetView(), clearColor, 0, nullptr);
+
+            CD3DX12_RESOURCE_BARRIER presentBarrier = CD3DX12_RESOURCE_BARRIER::Transition(mSwapChainBuffer[mCurrBackBuffer].Get(),
+																						   D3D12_RESOURCE_STATE_RENDER_TARGET,    // Before: Render target
+																						   D3D12_RESOURCE_STATE_PRESENT           // After: Ready for presentation
+																						   );
+			mCommandList->ResourceBarrier(1, &presentBarrier);
+        }
+
         SubmitCommand();
 
+        if (mShowWindow)
+        {
+            mSwapChain->Present(0, 0);
+        }
         // Advance the fence value to mark commands up to this fence point.
         mCurrentFence++;
 
@@ -467,13 +498,11 @@ private:
         dsvDesc.Format = mDepthStencilFormat;
         dsvDesc.Texture2D.MipSlice = 0;
         md3dDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), &dsvDesc, DepthStencilView());
-
         
         mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr);
         // Transition the resource from its initial state to be used as a depth buffer.
         
         mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-        
         SubmitAndFlushCommandQueue();
 
         // Update the viewport transform to cover the client area.
@@ -512,7 +541,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;
 
 	static const int SwapChainBufferCount = 2;
-	int mCurrBackBuffer = 0;
+	int mCurrBackBuffer = -1;
     Microsoft::WRL::ComPtr<ID3D12Resource> mSwapChainBuffer[SwapChainBufferCount];
     Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;
 

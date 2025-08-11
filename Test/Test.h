@@ -16,6 +16,8 @@ public:
 
     Test(HINSTANCE hInstance) : D3DApp(hInstance) { } 
 
+    Test(HINSTANCE hInstance, std::wstring caption, int windowWidth, int windowHeight) : D3DApp(hInstance, caption, windowWidth, windowHeight){}
+
     void BuildResourcesAndHeaps() override {
         std::vector<Vector3D> inputVectors(64);
         std::random_device rd;
@@ -25,7 +27,7 @@ public:
 		for (auto& vec : inputVectors)
 		{
 			float magnitude = magnitudeDist(gen);
-			float theta = angleDist(gen);    // azimuthal angle
+			float theta = angleDist(gen);     // azimuthal angle
 			float phi = angleDist(gen);       // polar angle
 
 			vec.x = magnitude * sinf(phi) * cosf(theta);

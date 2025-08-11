@@ -8,7 +8,8 @@ int WINAPI WinMain(
     _In_ int nCmdShow
 )
 {
-    Test test(hInstance);
+    //Test test(hInstance);
+    Test test(hInstance, L"PerformanceTestCase:Sample", 800, 600);
     test.Initialize();
     test.Dispatch();
     auto duration = test.GetDuration();
