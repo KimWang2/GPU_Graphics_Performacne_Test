@@ -4,17 +4,18 @@
 #include <string>
 #include <fstream>
 #include <comdef.h> // For _com_error
-#define AssertIfFailed(x) assert(SUCCEEDED(x))
-#define ThrowIfFailed(x)                                              \
-{                                                                     \
-    HRESULT hr__ = (x);                                               \
-    if (FAILED(hr__)) {                                               \
-        _com_error err(hr__);                                         \
-        OutputDebugString(err.ErrorMessage());                        \
-        throw std::exception(err.ErrorMessage());                     \
-    }                                                                 \
-}
 
+
+//#define AssertIfFailed(x) assert(SUCCEEDED(x))
+#define AssertIfFailed(x)                                         \
+{                                                                 \
+	HRESULT hr__ = (x);                                           \
+	if (FAILED(hr__)) {                                           \
+		_com_error err(hr__);                                     \
+		OutputDebugStringW(err.ErrorMessage());                   \
+		throw err.ErrorMessage();                                 \
+	}                                                             \
+}
 
 namespace D3DUtil
 {

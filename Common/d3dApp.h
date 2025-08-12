@@ -14,6 +14,8 @@
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #endif
+#include <string>
+#include <exception>
 
 // Link necessary d3d12 libraries.
 #pragma comment(lib, "d3dcompiler.lib")
@@ -34,12 +36,12 @@ public:
     void Initialize() {
         if (mShowWindow)
         {
-			assert(InitMainWindow());
-			assert(InitGraphics());
+			InitMainWindow();
+			InitGraphics();
         }
         else 
         {
-			assert(InitGraphics());
+			InitGraphics();
         }
     }
 
@@ -311,7 +313,7 @@ private:
 																								);
 
             static float temp = 0;
-            temp += 1;
+            temp += 0.1;
 			mCommandList->ResourceBarrier(1, &renderTargetBarrier);
             const float clearColor[] = { sinf(temp), 0.2f, 0.4f, 1.0f};
 			mCommandList->ClearRenderTargetView(RenderTargetView(), clearColor, 0, nullptr);
