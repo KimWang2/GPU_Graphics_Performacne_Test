@@ -133,9 +133,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\d3dApp.h" />
+    <ClInclude Include="..\Common\d3dAppSimplified.h" />
     <ClInclude Include="..\Common\d3dUtil.h" />
     <ClInclude Include="..\Common\d3dx12.h" />
     <ClInclude Include="Test.h" />
+    <ClInclude Include="TestSimplified.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\VectorLengths.hlsl">

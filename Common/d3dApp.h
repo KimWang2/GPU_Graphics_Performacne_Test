@@ -463,7 +463,6 @@ private:
             md3dDevice->CreateRenderTargetView(mSwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
             rtvHeapHandle.Offset(1, mRtvDescriptorSize);
         }
-
         
         // Create the depth/stencil buffer and view.
         D3D12_RESOURCE_DESC depthStencilDesc;
