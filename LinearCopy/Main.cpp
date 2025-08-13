@@ -12,6 +12,8 @@ int WINAPI WinMain(
 	GpuCopy test(hInstance);
 	test.Initialize();
 	test.Dispatch();
-	auto duration = test.GetDuration();
+	double duration = test.GetDuration();
+    float bytesCopy = test.m_height * test.m_width * sizeof(float) * 1.0f;
+    double bandwidth = bytesCopy / duration / 1024 / 1024 / 1024;
     return 0;
 }

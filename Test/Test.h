@@ -35,7 +35,7 @@ public:
 			vec.z = magnitude * cosf(phi);
 		}
 
-        mInputBuffer = D3DUtil::CreateDefaultBuffer(Device(), GraphicsCommandList(), inputVectors.data(), inputVectors.size() * sizeof(Vector3D), mUploadBuffer);
+        mInputBuffer = D3DUtil::CreateDefaultBuffer(Device(), GraphicsCommandList(), inputVectors.data(), inputVectors.size() * sizeof(Vector3D));
 		
 		UINT byteSize     = 64 * sizeof(float);
 		auto defaultHeap  = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);

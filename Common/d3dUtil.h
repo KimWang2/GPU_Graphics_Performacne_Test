@@ -4,7 +4,7 @@
 #include <string>
 #include <fstream>
 #include <comdef.h> // For _com_error
-
+#include <vector>
 
 //#define AssertIfFailed(x) assert(SUCCEEDED(x))
 #define AssertIfFailed(x)                                         \
@@ -20,6 +20,8 @@
 namespace D3DUtil
 {
     using Microsoft::WRL::ComPtr;  
+
+	static std::vector<ComPtr<ID3D12Resource>> g_uploadBuffers;
 
     inline ComPtr<ID3DBlob> CompileShader(
         const std::wstring& filename,
@@ -68,9 +70,9 @@ namespace D3DUtil
         ID3D12Device* device,
         ID3D12GraphicsCommandList* cmdList,
         const void* initData,
-        UINT64 byteSize,
-        Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer) 
+        UINT64 byteSize) 
     {
+		ComPtr<ID3D12Resource> uploadBuffer;
 		ComPtr<ID3D12Resource> defaultBuffer;
 		D3D12_HEAP_PROPERTIES defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_HEAP_PROPERTIES uploadHeap  = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
@@ -93,6 +95,8 @@ namespace D3DUtil
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(uploadBuffer.GetAddressOf()));
+
+		g_uploadBuffers.push_back(uploadBuffer);
 
 		// Describe the data we want to copy into the default buffer.
 		D3D12_SUBRESOURCE_DATA subResourceData = {};

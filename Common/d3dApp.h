@@ -313,7 +313,7 @@ private:
 																								);
 
             static float temp = 0;
-            temp += 0.1;
+            temp += 0.1f;
 			mCommandList->ResourceBarrier(1, &renderTargetBarrier);
             const float clearColor[] = { sinf(temp), 0.2f, 0.4f, 1.0f};
 			mCommandList->ClearRenderTargetView(RenderTargetView(), clearColor, 0, nullptr);

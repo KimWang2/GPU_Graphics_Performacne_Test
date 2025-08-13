@@ -33,8 +33,12 @@ public:
 			value = magnitude * cosf(phi);
 		}
 
-        mDefaultBuffer = D3DUtil::CreateDefaultBuffer(Device(), GraphicsCommandList(), inputVectors.data(), inputVectors.size() * sizeof(float), mUploadBuffer);
-		
+        mDefaultBuffer = D3DUtil::CreateDefaultBuffer(Device(), GraphicsCommandList(), inputVectors.data(), inputVectors.size() * sizeof(float));
+
+		ConstBuffer cb = { m_height, m_width };
+
+        mConstBuffer = D3DUtil::CreateDefaultBuffer(Device(), GraphicsCommandList(), &cb, sizeof(cb));
+
 		UINT byteSize = m_height * m_width * sizeof(float);
 		auto temp  = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		auto temp1 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
@@ -67,12 +71,12 @@ public:
 		CD3DX12_ROOT_PARAMETER slotRootParameter[3];
 
 		// Perfomance TIP: Order from most frequent to least frequent.
-		slotRootParameter[0].InitAsShaderResourceView(0);
+		slotRootParameter[0].InitAsConstantBufferView(0);
 		slotRootParameter[1].InitAsShaderResourceView(0);
 		slotRootParameter[2].InitAsUnorderedAccessView(0);
 
 		// A root signature is an array of root parameters.
-		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
 		// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
 		ComPtr<ID3DBlob> serializedRootSig = nullptr;
@@ -106,10 +110,10 @@ public:
 		auto commandList = GraphicsCommandList();
 		commandList->SetComputeRootSignature(mRootSignature.Get());
 		commandList->SetPipelineState(mPSO.Get());
-		commandList->SetComputeRootConstantBufferView(0, mDefaultBuffer->GetGPUVirtualAddress());
+		commandList->SetComputeRootConstantBufferView(0, mConstBuffer->GetGPUVirtualAddress());
 		commandList->SetComputeRootShaderResourceView(1, mDefaultBuffer->GetGPUVirtualAddress());
 		commandList->SetComputeRootUnorderedAccessView(2, mOutputBuffer->GetGPUVirtualAddress());
-		commandList->Dispatch(1, 1, 1);
+		commandList->Dispatch(m_width * m_height / 64, 1, 1);
 
 		// Barrier to transition output buffer to copy source
 		D3D12_RESOURCE_BARRIER outputBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -119,15 +123,14 @@ public:
 		commandList->ResourceBarrier(1, &outputBarrier);
 
 		// Copy results to readback buffer
-		commandList->CopyResource(mReadBackBuffer.Get(), mOutputBuffer.Get());
+		//commandList->CopyResource(mReadBackBuffer.Get(), mOutputBuffer.Get());
     }
 
     ComPtr<ID3DBlob> mShaders;
-    Microsoft::WRL::ComPtr<ID3D12Resource> mUploadBuffer;
-    Microsoft::WRL::ComPtr<ID3D12Resource> mUploadBuffer1;
+
     Microsoft::WRL::ComPtr<ID3D12Resource> mDefaultBuffer;
     Microsoft::WRL::ComPtr<ID3D12Resource> mConstBuffer;
-	ComPtr<ID3D12Resource> mOutputBuffer = nullptr;
+	ComPtr<ID3D12Resource> mOutputBuffer   = nullptr;
 	ComPtr<ID3D12Resource> mReadBackBuffer = nullptr;
 
 	ComPtr<ID3D12RootSignature> mRootSignature;
