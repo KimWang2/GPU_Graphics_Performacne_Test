@@ -28,6 +28,16 @@ public:
     
     D3DAppSimplified(HINSTANCE hInstance) : mhAppInst(hInstance) { }
 
+
+	virtual ~D3DAppSimplified() {
+        if (mhAppInst) {
+            if (!UnregisterClass(L"MainWnd", mhAppInst)) {
+                DWORD error = GetLastError();
+                // Log error if needed
+            }
+        }
+    }
+
     void Initialize() {
         InitMainWindow();
 		InitGraphics();
