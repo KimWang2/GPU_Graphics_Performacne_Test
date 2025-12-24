@@ -30,6 +30,10 @@ public:
 
 
 	virtual ~D3DAppSimplified() {
+        if (mhMainWnd) {
+            DestroyWindow(mhMainWnd);
+            mhMainWnd = nullptr;
+        }
         if (mhAppInst) {
             if (!UnregisterClass(L"MainWnd", mhAppInst)) {
                 DWORD error = GetLastError();

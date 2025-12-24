@@ -117,5 +117,14 @@ namespace D3DUtil
 
 		return defaultBuffer;
     }
+
+	std::wstring StringToWString(const std::string& str) {
+		return std::wstring(str.begin(), str.end());
+	}
+	
+	void PrintDebugString(std::string debugOutput) {
+		OutputDebugString(StringToWString(debugOutput).c_str());
+	}
+
 }
 

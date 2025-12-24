@@ -17,6 +17,8 @@ public:
 	};
 
     GpuCopy(HINSTANCE hInstance) : D3DAppSimplified(hInstance) { } 
+    GpuCopy(HINSTANCE hInstance, uint32_t width, uint32_t height) :
+		m_width(width), m_height(height), D3DAppSimplified(hInstance) { } 
 
     void BuildResourcesAndHeaps() override {
         std::vector<float> inputVectors(m_height * m_width);
