@@ -4,6 +4,8 @@
 #include <iostream>
 #include <sstream>
 #include <d3dUtil.h>
+#include <fstream>
+#include <cstdlib>  // for atoi
 
 int WINAPI WinMain(
     _In_ HINSTANCE hInstance,
@@ -12,64 +14,55 @@ int WINAPI WinMain(
     _In_ int nCmdShow
 )
 {
-	std::vector<int> sizes;
-	std::vector<double> bandwidths;
+	int    size      = 1024;
+	double bandwidth = 0;
+	// Get command line arguments using Windows API
+	int argc;
+	LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
-    for (int i = 8; i <= 1024; i = i + 8)
-    {
-		uint32_t width = i;
-		uint32_t height = i;
-		GpuCopy test(hInstance, width, height);
-		test.Initialize();
-		test.Dispatch();
-		double duration  = test.GetDuration();
-		float bytesCopy  = test.m_height * test.m_width * sizeof(float) * 1.0f;
-		double bandwidth = bytesCopy / duration / 1024 / 1024 / 1024;
-
-		sizes.push_back(i);
-		bandwidths.push_back(bandwidth);
-
-		std::ostringstream debugOutput;
-		debugOutput << "**************************Summary**************************\n";
-		debugOutput << "Height: " << test.m_height << " Width: " << test.m_width << "\n";
-		debugOutput << "Total Bytes Copied: " << bytesCopy << " bytes\n";
-		debugOutput << "GPU Linear Copy Bandwidth: " << bandwidth << " GB/s\n";
-		debugOutput << "GPU Linear Copy Duration:  " << duration << " seconds\n";
-		debugOutput << "**************************EndEnd**************************\n";
-
-		D3DUtil::PrintDebugString(debugOutput.str());
-    }
-	
-	// Output sizes as Python list
-	std::ostringstream pythonOutput;
-	pythonOutput << "\n# Python visualization data\n";
-	pythonOutput << "sizes = [";
-	for (size_t i = 0; i < sizes.size(); ++i)
+	if (argv && argc >= 2)
 	{
-		pythonOutput << sizes[i];
-		if (i < sizes.size() - 1) pythonOutput << ", ";
-	}
-	pythonOutput << "]\n";
+		// Convert wide string to integer
+		size = _wtoi(argv[1]);
 
-	// Output bandwidths as Python list
-	pythonOutput << "bandwidths = [";
-	for (size_t i = 0; i < bandwidths.size(); ++i)
+		// Optional: Show in debug output
+		wchar_t buffer[256];
+		swprintf_s(buffer, L"Using size from command line: %d\n", size);
+		OutputDebugStringW(buffer);
+	}
+	else
 	{
-		pythonOutput << bandwidths[i];
-		if (i < bandwidths.size() - 1) pythonOutput << ", ";
+		OutputDebugStringA("No size provided, using default: 2048\n");
 	}
-	pythonOutput << "]\n";
 
-	// Add sample Python plot code
-	pythonOutput << "\n# Sample matplotlib code:\n";
-	pythonOutput << "# import matplotlib.pyplot as plt\n";
-	pythonOutput << "# plt.plot(sizes, bandwidths)\n";
-	pythonOutput << "# plt.xlabel('Size (pixels)')\n";
-	pythonOutput << "# plt.ylabel('Bandwidth (GB/s)')\n";
-	pythonOutput << "# plt.title('GPU Linear Copy Bandwidth')\n";
-	pythonOutput << "# plt.show()\n";
+	uint32_t width  = size;
+	uint32_t height = size;
+	GpuCopy test(hInstance, width, height);
+	test.Initialize();
+	test.Dispatch();
+	double duration = test.GetDuration();
+	float bytesCopy = test.m_height * test.m_width * sizeof(float) * 1.0f;
+	bandwidth = (bytesCopy / duration / 1024 / 1024 / 1024);
 
-	D3DUtil::PrintDebugString(pythonOutput.str());
+	std::ostringstream debugOutput;
+	debugOutput << "**************************Summary**************************\n";
+	debugOutput << "Height: " << test.m_height << " Width: " << test.m_width << "\n";
+	debugOutput << "Total Bytes Copied: " << bytesCopy << " bytes\n";
+	debugOutput << "GPU Linear Copy Bandwidth: " << bandwidth << " GB/s\n";
+	debugOutput << "GPU Linear Copy Duration:  " << duration << " seconds\n";
+	debugOutput << "**************************EndEnd**************************\n";
+	D3DUtil::PrintDebugString(debugOutput.str());
 
+	// Append to CSV file with timestamp
+	std::ofstream csvfile("bandwidth_results.csv", std::ios::app);
+	if (csvfile.is_open()) {
+		// Write header if file is empty
+		csvfile.seekp(0, std::ios::end);
+		if (csvfile.tellp() == 0) {
+			csvfile << "Size, Bandwidth_GBs\n";
+		}
+		csvfile << size << "," << bandwidth << "\n";
+		csvfile.close();
+	}
     return 0;
 }

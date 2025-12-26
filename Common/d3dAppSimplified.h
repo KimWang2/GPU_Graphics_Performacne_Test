@@ -81,7 +81,8 @@ public:
         // Map the readback buffer
         UINT64* pTimestampData;
         D3D12_RANGE readRange = {0, mTimestampQueryBufferSize};
-        mTimestampQueryReadbackBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pTimestampData));
+        HRESULT hr = mTimestampQueryReadbackBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pTimestampData));
+        AssertIfFailed(hr);
         UINT64 startTimestamp = pTimestampData[0];
         UINT64 endTimestamp   = pTimestampData[1];
         mTimestampQueryReadbackBuffer->Unmap(0, nullptr);
