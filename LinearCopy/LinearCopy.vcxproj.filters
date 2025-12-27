@@ -37,7 +37,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\GpuCopy.hlsl">
+    <FxCompile Include="Shaders\LinearCopy.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\TransposeCopy.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\VectorLengthsSimplified.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>

@@ -6,6 +6,11 @@
 #include <random>
 #include <cstdint>
 
+enum ShaderType : uint32_t {
+    Linear = 0,
+    Transpose = 1
+};
+
 class GpuCopy : public D3DAppSimplified
 {
 public:
@@ -14,11 +19,19 @@ public:
 	{
 		uint32_t SizeH;
 		uint32_t SizeW;
+		uint32_t StrideI;
+		uint32_t StrideO;
 	};
 
-    GpuCopy(HINSTANCE hInstance) : D3DAppSimplified(hInstance) { } 
-    GpuCopy(HINSTANCE hInstance, uint32_t width, uint32_t height) :
-		m_width(width), m_height(height), D3DAppSimplified(hInstance) { } 
+    GpuCopy(HINSTANCE hInstance, uint32_t width, uint32_t height, uint32_t strideO, uint32_t strideI, ShaderType shadertype) :
+		D3DAppSimplified(hInstance), 
+        m_width(width), 
+		m_height(height),
+		m_strideI(strideI), 
+		m_strideO(strideO), 
+		m_shaderType(shadertype) 
+	{ 
+    }
 
     void BuildResourcesAndHeaps() override {
         std::vector<float> inputVectors(m_height * m_width);
@@ -31,13 +44,12 @@ public:
 			float magnitude = magnitudeDist(gen);
 			float theta = angleDist(gen);        // azimuthal angle
 			float phi = angleDist(gen);          // polar angle
-
 			value = magnitude * cosf(phi);
 		}
 
         mDefaultBuffer = D3DUtil::CreateDefaultBuffer(Device(), GraphicsCommandList(), inputVectors.data(), inputVectors.size() * sizeof(float));
 
-		ConstBuffer cb = { m_height, m_width };
+		ConstBuffer cb = { m_height, m_width, m_strideI, m_strideO};
 
         mConstBuffer = D3DUtil::CreateDefaultBuffer(Device(), GraphicsCommandList(), &cb, sizeof(cb));
 
@@ -66,8 +78,32 @@ public:
 	}
 
     void BuildShadersAndInputLayout() override {
-        mShaders = D3DUtil::CompileShader(L"Shaders\\GpuCopy.hlsl", nullptr, "LinearCopyCS", "cs_5_0");
-    }
+		const wchar_t* shaderPath = nullptr;
+
+		switch (m_shaderType)
+		{
+		case ShaderType::Linear:
+			shaderPath = L"Shaders\\LinearCopy.hlsl";
+			break;
+
+		case ShaderType::Transpose:
+			shaderPath = L"Shaders\\TransposeCopy.hlsl";
+			break;
+
+		default:
+			OutputDebugStringA("ERROR: Unknown shader type!\n");
+			assert(false && "Unknown shader type");
+			return;
+		}
+
+		mShaders = D3DUtil::CompileShader(shaderPath, nullptr, "main", "cs_5_0");
+
+		if (mShaders == nullptr)
+		{
+			OutputDebugStringA("ERROR: Failed to compile shader!\n");
+			assert(false && "Shader compilation failed");
+		}
+	}
 
     void BuildPSOs() override {
 		CD3DX12_ROOT_PARAMETER slotRootParameter[3];
@@ -137,7 +173,11 @@ public:
 
 	ComPtr<ID3D12RootSignature> mRootSignature;
 	ComPtr<ID3D12PipelineState> mPSO;
-	
-	uint32_t m_width = 2000;
-	uint32_t m_height = 2000;
+
+	uint32_t m_width;
+	uint32_t m_height;
+	uint32_t m_strideI;
+	uint32_t m_strideO;
+	ShaderType m_shaderType;
 };
+

@@ -15,29 +15,59 @@ int WINAPI WinMain(
 )
 {
 	int    size      = 1024;
+	int    width     = 1024;
+	int    height    = 1024;
+	int    strideI   = 1024;
+	int    strideO   = 1024;
+	ShaderType shaderType = ShaderType::Linear;
 	double bandwidth = 0;
+
 	// Get command line arguments using Windows API
+	// Usage: program.exe <width> <height> <strideI> <strideO> <shaderType>
+	// shaderType: 0=Linear, 1=Tiled, etc.
 	int argc;
 	LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
-	if (argv && argc >= 2)
+	if (argv)
 	{
-		// Convert wide string to integer
-		size = _wtoi(argv[1]);
+		if (argc >= 2)
+		{
+			width = _wtoi(argv[1]);
+		}
+		if (argc >= 3)
+		{
+			height = _wtoi(argv[2]);
+		}
+		if (argc >= 4)
+		{
+			strideI = _wtoi(argv[3]);
+		}
+		if (argc >= 5)
+		{
+			strideO = _wtoi(argv[4]);
+		}
+		if (argc >= 6)
+		{
+			int shaderTypeInt = _wtoi(argv[5]);
+			shaderType = static_cast<ShaderType>(shaderTypeInt);
+		}
 
-		// Optional: Show in debug output
-		wchar_t buffer[256];
-		swprintf_s(buffer, L"Using size from command line: %d\n", size);
+		// Show parsed arguments in debug output
+		wchar_t buffer[512];
+		swprintf_s(buffer, L"Params: width=%d, height=%d, strideI=%d, strideO=%d, shaderType=%d\n",
+			width, height, strideI, strideO, static_cast<int>(shaderType));
 		OutputDebugStringW(buffer);
+
+		LocalFree(argv);  // Free memory allocated by CommandLineToArgvW
 	}
 	else
 	{
-		OutputDebugStringA("No size provided, using default: 2048\n");
+		OutputDebugStringA("Failed to parse command line, using defaults\n");
+		assert(true);
 	}
-
-	uint32_t width  = size;
-	uint32_t height = size;
-	GpuCopy test(hInstance, width, height);
+	
+	GpuCopy test(hInstance, static_cast<uint32_t>(width), static_cast<uint32_t>(height), 
+		static_cast<uint32_t>(strideO), static_cast<uint32_t>(strideI), shaderType);
 	test.Initialize();
 	test.Dispatch();
 	double duration = test.GetDuration();
@@ -59,9 +89,9 @@ int WINAPI WinMain(
 		// Write header if file is empty
 		csvfile.seekp(0, std::ios::end);
 		if (csvfile.tellp() == 0) {
-			csvfile << "Size, Bandwidth_GBs\n";
+			csvfile << "Width ,Height, StrideI, StrideO, Bandwidth_GBs\n";
 		}
-		csvfile << size << "," << bandwidth << "\n";
+		csvfile << width << "," << height << "," << strideI << "," << strideO << "," << bandwidth << "\n";
 		csvfile.close();
 	}
     return 0;

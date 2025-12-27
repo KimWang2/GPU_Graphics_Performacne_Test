@@ -16,7 +16,7 @@ def run_simple_test(tryCount = 8):
         os.remove(csv_file)        
 
 
-    for size in range(8, 1024, 128):
+    for size in range(8, 1024, 48):
         print(f"\nRunning size {size}...")
         
         # Run 8 times for each size
@@ -46,7 +46,7 @@ def plot_bandwidth_results(filename):
         for line in lines:
             parts = line.strip().split(',')
             size.append(int(parts[0]))
-            bandwidth.append(float(parts[4]))
+            bandwidth.append(float(parts[1]))
         
     print(size)
     print(bandwidth)
@@ -54,7 +54,7 @@ def plot_bandwidth_results(filename):
     plt.plot(size, bandwidth, marker='o')
     plt.xlabel('Size')
     plt.ylabel('Bandwidth (GB/s)')
-    plt.title('Navi48 Bandwidth Results')
+    plt.title('Bandwidth Results')
     plt.grid(True)
     plt.show() 
 
