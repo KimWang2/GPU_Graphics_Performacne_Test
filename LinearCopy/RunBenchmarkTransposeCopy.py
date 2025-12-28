@@ -29,7 +29,7 @@ def run_simple_test(tryCount = 8):
                     str(size),
                     str(size),
                     str(size),
-                    str(0)
+                    str(1)
                 ], capture_output=True, text=True)
                 print(f"  Run {i+1}: {result.stdout.strip()}")
             except Exception as e:
@@ -54,8 +54,9 @@ def plot_bandwidth_results(filename):
     plt.plot(size, bandwidth, marker='o')
     plt.xlabel('Size')
     plt.ylabel('Bandwidth (GB/s)')
-    plt.title('Navi48 Bandwidth Results')
+    plt.title('TransposeCopy Bandwidth Results')
     plt.grid(True)
+    plt.savefig('TransposeCopyBandwidth.pdf')   # PDF format
     plt.show() 
 
 if __name__ == "__main__":
